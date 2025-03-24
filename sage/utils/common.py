@@ -16,6 +16,7 @@ from box import Box
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.output_parsers.json import parse_json_markdown
 from rich.console import Console
+from sage.utils.embedding_utils import OllamaEmbeddingOnly
 
 
 def check_env_vars(hf_setup: bool = False):
@@ -103,12 +104,16 @@ def function2string(function_handle: str, code_define: str) -> str:
     return code_define
 
 
-@lru_cache(maxsize=None)
-def load_embedding_model(model_name: str):
-    """Builds an embedding model and cache it"""
+# @lru_cache(maxsize=None)
+# def load_embedding_model(model_name: str):
+#     """Builds an embedding model and cache it"""
+#
+#     return OllamaEmbeddings(model="nomic-embed-text")
+#     # return HuggingFaceEmbeddings(model_name=model_name)
 
-    return HuggingFaceEmbeddings(model_name=model_name)
-
+def load_embedding_model(model_name: str = "nomic-embed-text"):
+    """Builds and caches an embedding model"""
+    return OllamaEmbeddingOnly(model=model_name)
 
 class Timeliner:
     """

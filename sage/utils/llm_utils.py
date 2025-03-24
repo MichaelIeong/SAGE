@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Type
 import datetime
 
 from langchain.chat_models import ChatOpenAI
+from langchain.llms import Ollama
 from langchain.llms.base import BaseLLM
 from langchain import HuggingFaceTextGenInference
 from langchain.schema.messages import HumanMessage
@@ -65,6 +66,26 @@ class TGIConfig(LLMConfig):
     stop_sequences: List[str] = field(default_factory=lambda: [])
 
 
+@dataclass
+class OllamaConfig(LLMConfig):
+    _target: Type = field(default_factory=lambda: Ollama)
+    model_name: str = "qwen2.5:latest"
+    temperature: float = 0.7
+    # ❌ 旧版本不支持，注释掉
+    # max_tokens: int = 500
+    # stop: List[str] = field(default_factory=lambda: [])
+
+    def instantiate(self):
+        kwargs = vars(self).copy()
+        kwargs.pop("_target")
+        kwargs["model"] = kwargs.pop("model_name")
+
+        # ✅ 只保留支持的字段
+        allowed_keys = {"model", "temperature"}
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
+
+        return self._target(**filtered_kwargs)
+
 def make_chatgpt_request(
     prompt: str,
     max_tokens: int,
@@ -96,6 +117,32 @@ def make_chatgpt_request(
 
     message = HumanMessage(content=prompt)
     response = llm([message])
+
+    return {
+        "prompt": prompt,
+        "response": response,
+        "created_at": str(datetime.datetime.now()),
+    }
+
+def make_ollama_request(
+        prompt: str,
+        model: str = "qwen2.5:latest",
+        temperature: float = 0.7,
+        max_tokens: int = 500,
+        stop: List[str] = None,
+) -> Dict[str, Any]:
+    """Given a prompt, sends a request to a local Ollama model"""
+
+    llm_config = OllamaConfig(
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stop=stop or []
+    )
+    llm = llm_config.instantiate()
+
+    # Ollama doesn't use messages — just string prompts
+    response = llm(prompt)
 
     return {
         "prompt": prompt,

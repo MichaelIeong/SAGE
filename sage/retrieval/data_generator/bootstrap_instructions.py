@@ -20,6 +20,8 @@ import datetime
 from multiprocessing import Pool
 from functools import partial
 
+from sage.utils.llm_utils import make_ollama_request  # ✅ 新增导入
+
 import tqdm
 from argparse import ArgumentParser, Namespace
 import glob
@@ -213,18 +215,28 @@ def generate_user_instructions(
             inputs=prompt_kwargs,
             prompt=prompt_template,
         )
-        result = make_chatgpt_request(
+        # result = make_chatgpt_request(
+        #     prompt=prompt,
+        #     max_tokens=1024,
+        #     temperature=0.7,
+        #     top_p=0.5,
+        #     frequency_penalty=0,
+        #     presence_penalty=2,
+        #     stop_sequences=["\n\n", "\n16", "16.", "16 ."],
+        #     n=1,
+        # )
+
+        result = make_ollama_request(
             prompt=prompt,
-            max_tokens=1024,
+            model="qwen2.5:latest",  # 你可以改成 mistral、llama2 等你本地装了的模型名
             temperature=0.7,
-            top_p=0.5,
-            frequency_penalty=0,
-            presence_penalty=2,
-            stop_sequences=["\n\n", "\n16", "16.", "16 ."],
-            n=1,
+            max_tokens=1024,
+            stop=["\n\n", "\n16", "16.", "16 ."],
         )
 
-        new_instructions = extract_instructions(result["response"].content)
+        # new_instructions = extract_instructions(result["response"].content)
+
+        new_instructions = extract_instructions(result["response"])
         selected_instructions = select_instructions(
             scorer, new_instructions, seed_instructions, machine_instructions
         )

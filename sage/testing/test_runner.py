@@ -53,7 +53,7 @@ from sage.testing.testing_utils import current_save_dir
 from sage.testing.testing_utils import get_base_device_state
 from sage.testing.testing_utils import get_min_device_state
 from sage.utils.common import CONSOLE
-from sage.utils.llm_utils import ClaudeConfig
+from sage.utils.llm_utils import ClaudeConfig, OllamaConfig
 from sage.utils.llm_utils import GPTConfig
 from sage.utils.llm_utils import TGIConfig
 
@@ -87,6 +87,7 @@ class LlmType(Enum):
     GPT = GPTConfig
     CLAUDE = ClaudeConfig
     LEMUR = TGIConfig
+    OLLAMA = OllamaConfig
 
 
 @dataclass
@@ -94,12 +95,11 @@ class TestDemoConfig:
     trigger_server_url: str = f"http://{os.getenv('TRIGGER_SERVER_URL')}"
     trigger_servers: tuple[tuple] = (("condition", trigger_server_url),)
     coordinator_type: CoordinatorType = CoordinatorType.SAGE
-    llm_type: LlmType = LlmType.GPT
-    model_name: str = "gpt-4"
+    llm_type: LlmType = LlmType.OLLAMA
+    model_name: str = "qwen2.5:latest"
     wandb_tracing: bool = False
     logpath: str = "test"
-    evaluator_llm = GPTConfig(model_name="gpt-4", temperature=0.0).instantiate()
-
+    evaluator_llm = OllamaConfig(model_name="qwen2.5:latest", temperature=0.0).instantiate()
     # Resume the run from a previous run folder
     resume_from: str = None
     # resume_from: str = "latest"
@@ -116,7 +116,7 @@ class TestDemoConfig:
     test_scenario: str = "in-dist"
 
     def __post_init__(self):
-        if self.llm_type.name == "LEMUR":
+        if self.llm_type.name in {"LEMUR", "OLLAMA"}:
             self.llm_config = self.llm_type.value()
         else:
             self.llm_config = self.llm_type.value(model_name=self.model_name)

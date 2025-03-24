@@ -209,11 +209,11 @@ class DeviceDisambiguationTool(SAGEBaseTool):
 
     detector: VlmDeviceDetector = None
 
-    def setup(self, config: DeviceDisambiguationToolConfig) -> None:
-        if config.global_config.test_id is not None:
-            self.detector = VlmDeviceDetector(f"{os.getenv('SMARTHOME_ROOT')}/sage/testing/assets/images")
-        else:
-            self.detector = VlmDeviceDetector(config.image_folder)
+    # def setup(self, config: DeviceDisambiguationToolConfig) -> None:
+    #     if config.global_config.test_id is not None:
+    #         self.detector = VlmDeviceDetector(f"{os.getenv('SMARTHOME_ROOT')}/sage/testing/assets/images")
+    #     else:
+    #         self.detector = VlmDeviceDetector(config.image_folder)
 
     def _run(self, query: str) -> str:
         return self.detector.identify_device(query)

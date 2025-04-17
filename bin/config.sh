@@ -25,4 +25,5 @@ export SMARTHOME_ROOT="$(dirname "$BIN_FOLDER")"
 export TRIGGER_SERVER_URL="0.0.0.0:5797"
 export MONGODB_SERVER_URL="0.0.0.0:27017"
 
-export SMARTHOME_ROOT="/home/nanachi/SAGE"
+# Change to your own root file location
+export SMARTHOME_ROOT="/home/michael/SAGE"

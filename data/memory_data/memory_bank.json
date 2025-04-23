@@ -91,5 +91,21 @@
             ]
         },
         "profile": "{\n  \"sports\": [\"basketball\", \"hockey\", \"tennis\", \"cycling\"],\n  \"favorite_teams\": [\"Montreal Canadians\", \"Toronto Raptors\"],\n  \"shows_genre\": [\"comedy\"],\n  \"movie_genre\": [\"drama\", \"suspense\"],\n  \"favorite_shows\": [],\n  \"favorite_movies\": [\"How to Kill a Mockingbird\"],\n  \"genre_to_avoid\": [\"horror\", \"violent\"]\n}"
-    }
+    },
+    "mmhu": {
+    "history": {
+        "2023-08-10": [
+            "I really enjoy watching sci-fi movies, especially ones with space travel.",
+            "Table tennis is my favorite sport. I used to play it every weekend in Shanghai.",
+            "What's the latest sci-fi film released this month?",
+            "Please avoid horror movies, they’re too scary for me.",
+            "Can you recommend a good smart TV to watch movies on?"
+        ],
+        "2023-08-11": [
+            "I live in Shanghai, so something related to local weather or air quality would be helpful.",
+            "Which smart lights are best for creating a cozy movie vibe?"
+        ]
+    },
+    "profile": "{\n  \"sports\": [\"table tennis\"],\n  \"favorite_teams\": [],\n  \"shows_genre\": [\"sci-fi\"],\n  \"movie_genre\": [\"sci-fi\"],\n  \"favorite_shows\": [],\n  \"favorite_movies\": [],\n  \"genre_to_avoid\": [\"horror\"],\n  \"location\": \"Shanghai\"\n}"
+}
 }

@@ -17,13 +17,17 @@ from sage.coordinators.base import CoordinatorConfig
 from sage.human_interaction.tools import HumanInteractionToolConfig
 from sage.misc_tools.weather_tool import WeatherToolConfig
 from sage.retrieval.memory_bank import MemoryBank
-from sage.retrieval.tools import UserProfileToolConfig
 from sage.smartthings.persistent_command_tools import ConditionCheckerToolConfig
 from sage.smartthings.persistent_command_tools import NotifyOnConditionToolConfig
 from sage.smartthings.smartthings_tool import SmartThingsToolConfig
+from sage.retrieval.tools import UserProfileToolConfig
+from sage.enviroment.tool import EnvironmentInfoToolConfig
+from sage.deviceInfo.tool import DeviceInfoToolConfig
+from sage.devicefunction.tool import DeviceFunctionToolConfig
 from sage.smartthings.tv_schedules import QueryTvScheduleToolConfig
 from sage.utils.llm_utils import TGIConfig
 from sage.utils.logging_utils import initialize_tool_names
+from sage.chroma_registry.memory_registry import init_shared_memory
 
 
 @dataclass
@@ -51,14 +55,21 @@ class SAGECoordinatorConfig(CoordinatorConfig):
     single_llm_config: bool = True
 
     # The tools config
+    # tool_configs: tuple[BaseToolConfig, ...] = (
+    #     UserProfileToolConfig(),
+    #     SmartThingsToolConfig(),
+    #     QueryTvScheduleToolConfig(),
+    #     ConditionCheckerToolConfig(),
+    #     NotifyOnConditionToolConfig(),
+    #     WeatherToolConfig(),
+    #     HumanInteractionToolConfig(),
+    # )
+
     tool_configs: tuple[BaseToolConfig, ...] = (
         UserProfileToolConfig(),
-        SmartThingsToolConfig(),
-        QueryTvScheduleToolConfig(),
-        ConditionCheckerToolConfig(),
-        NotifyOnConditionToolConfig(),
-        WeatherToolConfig(),
-        HumanInteractionToolConfig(),
+        EnvironmentInfoToolConfig(),
+        DeviceInfoToolConfig(),
+        DeviceFunctionToolConfig(),
     )
 
     # Save a snapshot of the memory of N interactions
@@ -66,7 +77,7 @@ class SAGECoordinatorConfig(CoordinatorConfig):
 
     def __post_init__(self):
         super().__post_init__()
-        
+
         if self.enable_google:
             from sage.misc_tools.google_suite import GoogleToolConfig
 
@@ -94,20 +105,8 @@ class SAGECoordinator(BaseCoordinator):
         super().__init__(config)
 
         self.tooldict = {}
-        self.memory = MemoryBank()
-        memory_save_dir = os.path.join(config.global_config.logpath, "memory_snapshots")
-        os.makedirs(memory_save_dir, exist_ok=True)
-
-        if os.path.isfile(os.path.join(memory_save_dir, "initial_snapshot.json")):
-            self.memory.read_from_json(
-                os.path.join(memory_save_dir, "initial_snapshot.json")
-            )
-        else:
-            self.memory.read_from_json(config.memory_path)
-
-            self.memory.save_snapshot(
-                os.path.join(memory_save_dir, "initial_snapshot.json")
-            )
+        self.memory = init_shared_memory()
+        # memory 已通过 init_shared_memory() 初始化和加载
 
         if isinstance(config.llm_config, TGIConfig):
             config.llm_config = TGIConfig(stop_sequences=["Human", "Question"])
@@ -156,7 +155,7 @@ class SAGECoordinator(BaseCoordinator):
 
     def update_tools(self, kwargs: dict[str, Any]) -> None:
         """
-        Update the path from which the tool will read the json files for device
+        Update the path from which the tool will read the json files for deviceInfo
         states and global states
         """
 

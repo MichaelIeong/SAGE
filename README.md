@@ -44,7 +44,7 @@ To host open-source LLMs, we used [Text generation API](https://github.com/huggi
 
 ```
 cd $SMARTHOME_ROOT/docker
-docker compose up
+docker compose up -d
 ```
 
 2 - Launch the trigger server for persistent command checking

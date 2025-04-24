@@ -10,6 +10,7 @@ from sage.utils.common import SMARTHOME_ROOT
 
 def fetch_device_info_from_api() -> list[dict]:
     try:
+        # todo: 改API，加Token
         resp = requests.get("http://10.226.197.56:8080/smartcity/api/device/deviceInfoList", timeout=5)
         resp.raise_for_status()
         return resp.json()

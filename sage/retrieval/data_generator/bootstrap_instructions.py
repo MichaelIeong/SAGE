@@ -228,7 +228,7 @@ def generate_user_instructions(
 
         result = make_ollama_request(
             prompt=prompt,
-            model="qwq:latest",  # 你可以改成 mistral、llama2 等你本地装了的模型名
+            model="qwen2.5:32b",  # 你可以改成 mistral、llama2 等你本地装了的模型名
             temperature=0.7,
             max_tokens=1024,
             stop=["\n\n", "\n16", "16.", "16 ."],

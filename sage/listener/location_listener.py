@@ -10,12 +10,12 @@ index_name = "chroma_environment"
 def human_location_to_nl(entry: dict) -> str:
     """
     将位置信息转换为自然语言句子。
-    例如 {"name": "mmhu", "location": "Shanghai", "floor": "3"} ->
-         "User mmhu is currently located at floor 3 in Shanghai."
+    例如 {"id": 4, "personName": "mmhu", "spaceId": 3} ->
+         "User mmhu is currently located in space 3."
     """
     name = entry.get("personName", "Unknown")
-    location = entry.get("spaceId", "an unknown spaceId")
-    return f"User {name} is currently located in {location}."
+    space_id = entry.get("spaceId", "an unknown space")
+    return f"User {name} is currently located in space {space_id}."
 
 def main():
     consumer = KafkaConsumer(

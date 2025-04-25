@@ -8,12 +8,15 @@ from sage.retrieval.memory_bank import MemoryBank
 from sage.utils.common import SMARTHOME_ROOT
 
 
-def fetch_device_info_from_api() -> list[dict]:
+def fetch_device_info_from_api(project_id: int = 1) -> list[dict]:
     try:
-        # todo: 改API，加Token
-        resp = requests.get("http://10.226.197.56:8080/smartcity/api/device/deviceInfoList", timeout=5)
+        url = "http://10.226.197.56:8080/api/devices"
+        params = {"project": project_id}
+
+        # 注意添加 params 参数
+        resp = requests.get(url, params=params, timeout=5)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json()  # 返回的是 List[dict]
     except Exception as e:
         print(f"[DeviceInfo API] Failed to fetch device info: {e}")
         return []
@@ -21,7 +24,8 @@ def fetch_device_info_from_api() -> list[dict]:
 
 def fetch_env_info_from_api() -> list[dict]:
     try:
-        resp = requests.get("http://10.226.197.56:8080/smartcity/api/env", timeout=5)
+        # 从PersonController获取person表的信息
+        resp = requests.get("http://10.226.197.56:8080//api/person", timeout=5)
         resp.raise_for_status()
         return resp.json()
     except Exception as e:
@@ -29,31 +33,17 @@ def fetch_env_info_from_api() -> list[dict]:
         return []
 
 
-def fetch_device_function_from_api() -> list[dict]:
-    try:
-        resp = requests.get("http://10.226.197.56:8080/smartcity/api/devicefunction", timeout=5)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        print(f"[DeviceFunction API] Failed to fetch device functions: {e}")
-        return []
-
-
 def convert_to_natural_language(data: list[dict], source: str) -> list[str]:
     """根据 source 类型构造自然语言描述"""
     if source == "device":
+        # Exclude certain keys (deviceTypeId, deviceTypeName, lastUpdateTime, states, fixedProperties, coordinate)
         return [
-            f"There is a device named {d['deviceName']} (ID: {d['deviceId']}) located in {d['SpaceId']}."
+            f"Device '{d.get('deviceName', 'unknown')}' (ID: {d.get('deviceId', 'N/A')}) is located in space {d.get('spaceId', 'N/A')} and supports functions: {', '.join(f['functionName'] for f in d.get('functions', []))}."
             for d in data
         ]
     elif source == "env":
         return [
-            f"In {d['location']}, temperature is {d.get('temperature', 'unknown')}°C and humidity is {d.get('humidity', 'unknown')}%."
-            for d in data
-        ]
-    elif source == "function":
-        return [
-            f"Device '{d['deviceName']}' (ID: {d['deviceId']}) supports the function '{d['functionName']}' via API '{d['api']}'."
+            f"Person '{d.get('personName', 'unknown')}' is currently located in space {d.get('spaceId', 'N/A')}."
             for d in data
         ]
     else:
@@ -95,13 +85,5 @@ def init_shared_memory() -> MemoryBank:
         ensure_json_file(env_info_path, env_info_data, source="env")
     memory.read_from_json(env_info_path)
     memory.create_indexes("chroma_environment", "sentence-transformers/all-MiniLM-L6-v2", load=True)
-
-    # 设备功能信息
-    device_function_path = os.path.join(memory_data_root, "device_function.json")
-    if not os.path.exists(device_function_path) or os.stat(device_function_path).st_size == 0:
-        function_data = fetch_device_function_from_api()
-        ensure_json_file(device_function_path, function_data, source="function")
-    memory.read_from_json(device_function_path)
-    memory.create_indexes("chroma_devicefunction", "sentence-transformers/all-MiniLM-L6-v2", load=True)
 
     return memory

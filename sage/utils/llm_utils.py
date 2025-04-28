@@ -49,7 +49,7 @@ class ClaudeConfig(LLMConfig):
     _target: Type = field(default_factory=lambda: ChatAnthropic)
     model_name: str = "claude-2"
     temperature: float = 0.0
-    anthropic_api_key: str = os.environ["ANTHROPIC_API_KEY"]
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
     default_request_timeout: int = 10200
     max_tokens_to_sample: int = 5000
     streaming: bool = True

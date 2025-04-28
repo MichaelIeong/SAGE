@@ -102,11 +102,23 @@ class MemoryBank:
         self.user_profiler.print_global_profiles()
 
     def read_from_json(self, save_path: str) -> None:
-        """Reads memory from json file"""
-        self.history = json.load(open(save_path, "r"))
-
-        for user_name, data in self.history.items():
-            self.user_profiler.global_profiles[user_name] = data["profile"]
+        """Read JSON file (standard JSON or line-delimited JSON)"""
+        if save_path.endswith("memory_bank.json"):
+            # 用户偏好：整体是一个大 JSON
+            with open(save_path, "r", encoding="utf-8") as f:
+                self.history = json.load(f)
+        else:
+            # 设备、环境信息：一行一个小 JSON
+            self.history = []
+            with open(save_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            self.history.append(json.loads(line))
+                        except json.JSONDecodeError as e:
+                            print(f"[Warning] Failed to parse line: {line}")
+                            print(e)
 
     def save(self, save_path: str):
         """Saves the memory into a json file"""
@@ -130,19 +142,26 @@ class MemoryBank:
         self.snapshot_id += 1
 
     def prepare_for_vector_db(self):
-        """
-        Prepare documents from the users' history for embedding and vector storage
-        """
-        documents = defaultdict(list)
+        """Prepare the content for vectorization"""
+        documents = []
 
-        for user_name, user_memory in self.history.items():
-            for date, interactions in user_memory["history"].items():
-                for instruction in interactions:
-                    memory_text = f"Instruction on {date}: {instruction.strip()}"
-                    metadata = {"source": date, "user": user_name}
-                    documents[user_name].append(
-                        Document(page_content=memory_text, metadata=metadata)
-                    )
+        if isinstance(self.history, dict):
+            # 用户偏好 memory_bank.json
+            for user_name, user_memory in self.history.items():
+                for instruction in user_memory.get("memory", []):
+                    documents.append(instruction)
+                profile = user_memory.get("profile", {})
+                if isinstance(profile, dict):
+                    documents.extend(profile.values())
+
+        elif isinstance(self.history, list):
+            # 设备/环境信息，直接按条目提取 instruction
+            for item in self.history:
+                if isinstance(item, dict) and "instruction" in item:
+                    documents.append(item["instruction"])
+
+        else:
+            raise ValueError("Unsupported history data type.")
 
         return documents
 

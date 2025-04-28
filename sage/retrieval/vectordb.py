@@ -9,8 +9,8 @@ from langchain.vectorstores import Chroma, FAISS
 from langchain.docstore.document import Document
 from langchain.embeddings.base import Embeddings
 
-
-from sage.utils.common import CONSOLE
+from sage.base import GlobalConfig
+from sage.utils.common import CONSOLE, load_embedding_model
 
 
 def build_chroma_db(
@@ -66,24 +66,52 @@ def build_faiss_db(
 VECTORDBS = {"chroma": build_chroma_db, "faiss": build_faiss_db}
 
 
-def create_multiuser_vector_indexes(
-    vectordb: str,
-    documents: Dict[str, List[Document]],
-    embedding_model,
-    load: bool = True,
-):
-    """Creates a vector index that offers similarity search"""
+def create_multiuser_vector_indexes(documents, db_name, embedding_model, load=False):
+    from langchain.vectorstores import Chroma
+    from langchain.embeddings import HuggingFaceEmbeddings
 
-    user_indexes = {}
+    if isinstance(documents, dict):
+        # 处理用户偏好：每个用户一个小库
+        indexes = {}
 
-    for user_name, memories in documents.items():
-        user_index_dir = os.path.join(
-            f"{os.getenv('SMARTHOME_ROOT')}", "user_info", user_name, vectordb
-        )
+        for user_name, memories in documents.items():
+            persist_directory = os.path.join(GlobalConfig.vectorstore_path, user_name, db_name)
 
-        # Create the index
-        user_indexes[user_name] = VECTORDBS[vectordb](
-            user_index_dir, memories, embedding_model, load=load
-        )
+            if load:
+                db = Chroma(
+                    persist_directory=persist_directory,
+                    embedding_function=load_embedding_model(embedding_model),
+                )
+            else:
+                db = Chroma.from_texts(
+                    texts=memories,
+                    embedding=load_embedding_model(embedding_model),
+                    persist_directory=persist_directory,
+                )
+                db.persist()
 
-    return user_indexes
+            indexes[user_name] = db
+
+        return indexes
+
+    elif isinstance(documents, list):
+        # 处理设备/环境信息：全部打到一个大库
+        persist_directory = os.path.join(GlobalConfig.vectorstore_path, db_name)
+
+        if load:
+            db = Chroma(
+                persist_directory=persist_directory,
+                embedding_function=load_embedding_model(embedding_model),
+            )
+        else:
+            db = Chroma.from_texts(
+                texts=documents,
+                embedding=load_embedding_model(embedding_model),
+                persist_directory=persist_directory,
+            )
+            db.persist()
+
+        return db  # 注意：直接返回 db，不是 dict
+
+    else:
+        raise ValueError("Unsupported document format: expected dict or list.")

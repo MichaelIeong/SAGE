@@ -1,5 +1,5 @@
 import json
-from kafka import KafkaConsumer
+from confluent_kafka import Consumer as KafkaConsumer
 from langchain.schema import Document
 from sage.chroma_registry.memory_registry import init_shared_memory
 

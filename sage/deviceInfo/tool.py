@@ -12,7 +12,7 @@ from sage.base import SAGEBaseTool, BaseToolConfig
 from sage.retrieval.memory_bank import MemoryBank
 from sage.utils.llm_utils import LLMConfig, TGIConfig
 from sage.utils.common import parse_json
-from sage.utils.memory_registry import init_shared_memory
+from sage.chroma_registry.memory_registry import init_shared_memory
 
 
 @dataclass

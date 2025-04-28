@@ -10,7 +10,7 @@ from sage.utils.common import SMARTHOME_ROOT
 
 def fetch_device_info_from_api(project_id: int = 1) -> list[dict]:
     try:
-        url = "http://10.226.197.56:8080/api/devices"
+        url = "http://localhost:8080/api/devices"
         params = {"project": project_id}
 
         # 注意添加 params 参数
@@ -25,7 +25,7 @@ def fetch_device_info_from_api(project_id: int = 1) -> list[dict]:
 def fetch_env_info_from_api() -> list[dict]:
     try:
         # 从PersonController获取person表的信息
-        resp = requests.get("http://10.226.197.56:8080//api/person", timeout=5)
+        resp = requests.get("http://localhost:8080//api/person", timeout=5)
         resp.raise_for_status()
         return resp.json()
     except Exception as e:

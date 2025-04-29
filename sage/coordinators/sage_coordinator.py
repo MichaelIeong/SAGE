@@ -1,14 +1,16 @@
 """ Sage Coordinator """
+
 import os
 import pickle
 from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import date
-from typing import Any
-from typing import Type
+from typing import Any, Type
 
-from langchain.agents import initialize_agent
+from langchain.agents import initialize_agent, ZeroShotAgent, AgentExecutor
+from langchain.prompts import PromptTemplate
+
 
 from sage.base import BaseToolConfig
 from sage.coordinators.base import AgentConfig
@@ -38,7 +40,8 @@ class SAGECoordinatorConfig(CoordinatorConfig):
 
     name: str = "SAGE"
     agent_type: str = "zero-shot-react-description"
-    agent_config: AgentConfig = AgentConfig()
+    #agent_config: AgentConfig = AgentConfig()
+    agent_config: AgentConfig = field(default_factory=lambda: AgentConfig(input_variables=["input"]))
     memory_path: str = os.path.join(
         os.getenv("SMARTHOME_ROOT"), "data/memory_data/large_memory_bank.json"
     )
@@ -54,17 +57,12 @@ class SAGECoordinatorConfig(CoordinatorConfig):
     # Bool to use the same llm config for all the tools
     single_llm_config: bool = True
 
-    # The tools config
-    # tool_configs: tuple[BaseToolConfig, ...] = (
-    #     UserProfileToolConfig(),
-    #     SmartThingsToolConfig(),
-    #     QueryTvScheduleToolConfig(),
-    #     ConditionCheckerToolConfig(),
-    #     NotifyOnConditionToolConfig(),
-    #     WeatherToolConfig(),
-    #     HumanInteractionToolConfig(),
-    # )
+    # output dir for snapshots
+    output_dir: str = os.path.join(
+        os.getenv("SMARTHOME_ROOT"), "logs", "memory_snapshots"
+    )
 
+    # The tools config
     tool_configs: tuple[BaseToolConfig, ...] = (
         UserProfileToolConfig(),
         EnvironmentInfoToolConfig(),
@@ -80,7 +78,6 @@ class SAGECoordinatorConfig(CoordinatorConfig):
 
         if self.enable_google:
             from sage.misc_tools.google_suite import GoogleToolConfig
-
             self.tool_configs = self.tool_configs + (GoogleToolConfig(),)
 
         if self.single_llm_config:
@@ -88,13 +85,11 @@ class SAGECoordinatorConfig(CoordinatorConfig):
 
     def override_llm_config(self, tool_configs: tuple[BaseToolConfig]) -> None:
         """Overrides the LLM config for the tools based on the coordinator config"""
-
         for config in tool_configs:
             if len(config.tool_configs) > 0:
                 self.override_llm_config(config.tool_configs)
 
             if hasattr(config, "llm_config"):
-                # override config using the coordinator config
                 config.llm_config = self.llm_config
 
 
@@ -106,36 +101,68 @@ class SAGECoordinator(BaseCoordinator):
 
         self.tooldict = {}
         self.memory = init_shared_memory()
-        # memory 已通过 init_shared_memory() 初始化和加载
-
         if isinstance(config.llm_config, TGIConfig):
             config.llm_config = TGIConfig(stop_sequences=["Human", "Question"])
+
+        # 确保日志目录存在
+        os.makedirs(config.global_config.logpath, exist_ok=True)
 
         # setup tools
         self._build_tools()
 
         # save tool descriptions in logs (used in visualization)
         tool_file = os.path.join(config.global_config.logpath, "tools.pickle")
-
         if not os.path.exists(tool_file):
             with open(tool_file, "wb") as fp:  # Pickling
                 pickle.dump(initialize_tool_names(self.tooldict), fp)
 
         # setup agent
         toollist = [tool for _, tool in self.tooldict.items()]
-        self.agent = initialize_agent(
-            toollist,
-            self.llm,
-            agent=config.agent_type,
-            agent_kwargs=asdict(config.agent_config),
-            handle_parsing_errors=True,
+        custom_prompt = PromptTemplate(
+            template="{input}",
+            input_variables=["input"]
         )
+        self.agent = self._build_agent(toollist, self.llm, self.config.agent_config)
 
         self.request_idx = 0
 
+    def _build_agent(self, toollist, llm, agent_config):
+        from langchain.prompts import PromptTemplate
+        from langchain.agents import ZeroShotAgent, AgentExecutor
+        from langchain.chains import LLMChain
+
+        # 手动构造一个 PromptTemplate
+        prompt = PromptTemplate(
+            template=(
+                "Answer the following question as best you can.\n\n"
+                "Available tools:\n"
+                "{tools}\n\n"
+                "{prefix}\n\n"
+                "{suffix}\n\n"
+                "Question: {input}\n"
+                "Thought:{agent_scratchpad}"
+            ),
+            input_variables=["input", "agent_scratchpad", "tools", "prefix", "suffix"],
+        )
+
+        # 将 LLM 包成 LLMChain
+        llm_chain = LLMChain(llm=llm, prompt=prompt)
+
+        # 用 llm_chain 创建 agent
+        agent = ZeroShotAgent(
+            llm_chain=llm_chain,
+            allowed_tools=[tool.name for tool in toollist],
+        )
+
+        # 最后生成 AgentExecutor
+        return AgentExecutor.from_agent_and_tools(
+            agent=agent,
+            tools=toollist,
+            verbose=agent_config.verbose,
+            handle_parsing_errors=True,
+        )
     def _build_tools(self) -> None:
         """Add tools to the agent"""
-
         for tool_config in self.config.tool_configs:
             if (
                 not self.config.enable_human_interaction
@@ -146,6 +173,9 @@ class SAGECoordinator(BaseCoordinator):
             if self.config.enable_memory_updating or tool_config.name in [
                 "human_interaction_tool",
                 "user_preference_tool",
+                "environment_info_tool",
+                "device_info_tool",
+                "device_function_tool",
             ]:
                 tool = tool_config.instantiate(memory=self.memory)
             else:
@@ -154,44 +184,43 @@ class SAGECoordinator(BaseCoordinator):
             self.tooldict[tool.name] = tool
 
     def update_tools(self, kwargs: dict[str, Any]) -> None:
-        """
-        Update the path from which the tool will read the json files for deviceInfo
-        states and global states
-        """
-
+        """Update the path from which the tool will read the json files for deviceInfo states and global states"""
         for tool_name, tool in self.tooldict.items():
             if tool_name in kwargs:
                 tool.update(kwargs[tool_name])
 
     def update_memory(self, user_name: str, command: str) -> None:
-        """
-        Update the user memory.
-        """
+        """Update the user memory."""
         self.memory.add_query(user_name, command, str(date.today()))
-        # create new memory tool because the memory is updated
-
         for tool_config in self.config.tool_configs:
             if tool_config.name == "user_profile_tool":
                 self.tooldict["user_profile_tool"] = tool_config.instantiate(
                     memory=self.memory
                 )
-
                 break
 
         # save a snapshot after snapshot_frequency interactions
         self.request_idx += 1
-
         if self.request_idx % self.config.snapshot_frequency == 0:
             self.memory.save_snapshot(
                 os.path.join(self.config.output_dir, "memory_snapshots")
             )
 
-    def execute(self, command: str) -> str:
-        """
-        Runs the agent with the provided command
-        """
+    def _tool_desc(self) -> str:
+        return "\n".join(f"{tool.name}: {tool.description}" for tool in self.tooldict.values())
 
-        response = self.agent(command, callbacks=self.callbacks)
+    def execute(self, command: str) -> str:
+        """Runs the agent with the provided command"""
+        response = self.agent(
+            {
+                "input": command,
+                "agent_scratchpad": "",  # 初始空白
+                "tools": self._tool_desc(),  # 工具描述
+                "prefix": self.config.agent_config.prefix,
+                "suffix": self.config.agent_config.suffix,
+            },
+            callbacks=self.callbacks,
+        )
 
         if self.config.enable_memory_updating:
             user_name, query = command.split(":")

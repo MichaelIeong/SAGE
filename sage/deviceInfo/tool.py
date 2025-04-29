@@ -3,7 +3,8 @@ import json
 import requests
 from typing import Dict, Any, Type
 from dataclasses import dataclass, field
-
+from typing import Optional, Any
+from pydantic import Field
 from langchain.prompts import PromptTemplate
 from langchain.llms.base import BaseLLM
 from langchain import LLMChain
@@ -32,6 +33,8 @@ Example input:
 
 
 class DeviceInfoTool(SAGEBaseTool):
+    config: Optional[Any] = Field(default=None, exclude=True)  # 加上这一行！
+
     llm: BaseLLM = None
     memory: MemoryBank = None
 

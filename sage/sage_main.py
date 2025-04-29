@@ -3,8 +3,11 @@
 import langchain
 from sage.coordinators.sage_coordinator import SAGECoordinatorConfig
 from sage.chroma_registry.memory_registry import init_shared_memory
+import sys
+import io
 
 def main():
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
     langchain.verbose = True  # 可以看到推理过程日志
 
     # 初始化共享向量数据库（MemoryBank）

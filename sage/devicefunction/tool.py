@@ -9,7 +9,8 @@ from langchain import LLMChain
 from sage.utils.llm_utils import LLMConfig, TGIConfig
 from sage.base import SAGEBaseTool, BaseToolConfig
 from sage.utils.common import parse_json
-
+from typing import Optional, Any
+from pydantic import Field
 
 @dataclass
 class DeviceFunctionToolConfig(BaseToolConfig):
@@ -24,7 +25,9 @@ Example input: {"device_id": "tv_01"}
 
 
 class DeviceFunctionTool(SAGEBaseTool):
-    llm: BaseLLM = None
+    config: Optional[Any] = Field(default=None, exclude=True)
+    llm: Optional[Any] = Field(default=None, exclude=True)
+    memory: Optional[Any] = Field(default=None, exclude=True)
 
     def setup(self, config: DeviceFunctionToolConfig, memory=None):
         if isinstance(config.llm_config, TGIConfig):

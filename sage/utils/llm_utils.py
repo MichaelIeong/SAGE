@@ -20,10 +20,8 @@ class LLMConfig(BaseConfig):
 
     _target: Type = None
 
-    def instantiate(self):
-        kwargs = vars(self).copy()
-        kwargs.pop("_target")
-
+    def instantiate(self, **kwargs):
+        kwargs.pop("global_config", None)  # 👈 加这一行，防止重复传 global_config
         return self._target(**kwargs)
 
 

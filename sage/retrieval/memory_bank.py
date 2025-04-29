@@ -142,28 +142,29 @@ class MemoryBank:
         self.snapshot_id += 1
 
     def prepare_for_vector_db(self):
-        """Prepare the content for vectorization"""
-        documents = []
-
+        """Prepare data for vector database creation"""
         if isinstance(self.history, dict):
-            # 用户偏好 memory_bank.json
-            for user_name, user_memory in self.history.items():
-                for instruction in user_memory.get("memory", []):
-                    documents.append(instruction)
-                profile = user_memory.get("profile", {})
-                if isinstance(profile, dict):
-                    documents.extend(profile.values())
+            result = {}
+
+            for user_name, user_data in self.history.items():
+                texts = []
+
+                # 取出每个用户下的 history
+                history = user_data.get("history", {})
+
+                for day, sentences in history.items():
+                    texts.extend(sentences)  # 把每天的所有句子平铺出来
+
+                result[user_name] = texts
+
+            return result
 
         elif isinstance(self.history, list):
-            # 设备/环境信息，直接按条目提取 instruction
-            for item in self.history:
-                if isinstance(item, dict) and "instruction" in item:
-                    documents.append(item["instruction"])
+            # 设备信息 / 环境信息：直接是 list
+            return self.history
 
         else:
-            raise ValueError("Unsupported history data type.")
-
-        return documents
+            raise ValueError(f"Unsupported history format in MemoryBank: {type(self.history)}")
 
     def create_indexes(
         self, vectorstore: str, embedding_model: str, load: bool = True
@@ -200,13 +201,15 @@ class MemoryBank:
     def __len__(self):
         total = 0
 
-        for user, data in self.history.items():
-            user_total = 0
+        if isinstance(self.history, dict):
+            for user, data in self.history.items():
+                user_total = 0
+                for key, value in data.get("history", {}).items():
+                    user_total += len(value)
+                print(f"User {user} has {user_total} saved memories")
+                total += user_total
 
-            for key, value in data["history"].items():
-                user_total += len(value)
-
-            print(f"User {user} has {user_total} saved memories")
-            total += user_total
+        elif isinstance(self.history, list):
+            total = len(self.history)
 
         return total

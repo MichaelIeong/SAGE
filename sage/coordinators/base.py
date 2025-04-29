@@ -8,7 +8,7 @@ from dataclasses import field
 from pathlib import Path
 from typing import Any
 from typing import Optional
-
+from typing import List
 import yaml
 
 from sage.base import BaseConfig
@@ -30,8 +30,7 @@ class AgentConfig:
     verbose: Optional[bool] = True
     prefix: str = ACTIVE_REACT_COORDINATOR_PREFIX
     suffix: str = ACTIVE_REACT_COORDINATOR_SUFFIX
-
-
+    input_variables: List[str] = field(default_factory=lambda: ["input"])
 @dataclass
 class CoordinatorConfig(BaseConfig):
     """Coordinator config"""

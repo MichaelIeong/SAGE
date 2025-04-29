@@ -51,10 +51,10 @@ class GlobalConfig:
 @dataclass
 class BaseConfig:
     """Config class for instantiating the class specified in the _target attribute."""
-
-    global_config: ClassVar[GlobalConfig]
-
     _target: Type
+    global_config: GlobalConfig = field(default_factory=GlobalConfig)
+
+
 
     def instantiate(self, **kwargs) -> Any:
         """Returns the instantiated object using the config."""

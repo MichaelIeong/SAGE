@@ -6,7 +6,7 @@ import click
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 
-from sage.utils.llm_utils import GPTConfig
+from sage.utils.llm_utils import GPTConfig, OllamaConfig
 
 
 class UserProfiler:
@@ -21,7 +21,7 @@ class UserProfiler:
 
         self.daily_preferences = defaultdict(dict)
         self.global_profiles = defaultdict(dict)
-        self.llm = GPTConfig().instantiate()
+        self.llm = OllamaConfig().instantiate()
 
     def print_daily_summary(
         self, user_name: str, date: str, daily_queries: str

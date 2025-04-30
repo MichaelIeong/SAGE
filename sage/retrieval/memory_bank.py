@@ -172,18 +172,28 @@ class MemoryBank:
         """Create seperate indexes for each user"""
         documents = self.prepare_for_vector_db()
         emb_function = load_embedding_model(model_name=embedding_model)
-        self.indexes = create_multiuser_vector_indexes(
+        self.indexes[vectorstore] = create_multiuser_vector_indexes(
             vectorstore, documents, emb_function, load=load
         )
 
-    def search(self, user_name: str, query: str, top_k=5) -> List[str]:
-        """Get the most relevant memories"""
-        sources = self.indexes[user_name].similarity_search(query, k=top_k)
+    def search(self, query: str, vectorstore: str = None, user_name: str = None, top_k: int = 5) -> List[str]:
+        """
+        Generalized search method:
+        - If user_name is provided, search in that user's memory index.
+        - If vectorstore is provided, search in the named vectorstore index (for env/device info).
+        """
+        if user_name is not None:
+            if user_name not in self.indexes:
+                raise ValueError(f"No index found for user: {user_name}")
+            sources = self.indexes[user_name].similarity_search(query, k=top_k)
+        elif vectorstore is not None:
+            if vectorstore not in self.indexes:
+                raise ValueError(f"No index found for vectorstore: {vectorstore}")
+            sources = self.indexes[vectorstore].similarity_search(query, k=top_k)
+        else:
+            raise ValueError("Must provide either user_name or vectorstore")
 
-        memories = [s.page_content for s in sources]
-
-        return memories
-
+        return [s.page_content for s in sources]
     def contains(self, memory: str, user_name: str) -> bool:
         """Check if a specific memory exists"""
 

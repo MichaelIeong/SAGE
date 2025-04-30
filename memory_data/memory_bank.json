@@ -92,5 +92,14 @@
             ]
         },
         "profile": "{\n  \"sports\": [\"basketball\", \"hockey\", \"tennis\", \"cycling\"],\n  \"favorite_teams\": [\"Montreal Canadians\", \"Toronto Raptors\"],\n  \"shows_genre\": [\"comedy\"],\n  \"movie_genre\": [\"drama\", \"suspense\"],\n  \"favorite_shows\": [],\n  \"favorite_movies\": [\"How to Kill a Mockingbird\"],\n  \"genre_to_avoid\": [\"horror\", \"violent\"]\n}"
+    },
+    "mmhu": {
+        "history": {
+            "2023-08-04": [
+                "Should I watch movies or shows tonight?"
+            ]
+        },
+        "profile": "{\n  \"sports\": [\"basketball\", \"hockey\", \"tennis\", \"cycling\"],\n  \"favorite_teams\": [\"Montreal Canadians\", \"Toronto Raptors\"],\n  \"shows_genre\": [\"comedy\"],\n  \"movie_genre\": [\"drama\", \"suspense\"],\n  \"favorite_shows\": [],\n  \"favorite_movies\": [\"How to Kill a Mockingbird\"],\n  \"genre_to_avoid\": [\"horror\", \"violent\"]\n}"
     }
+
 }

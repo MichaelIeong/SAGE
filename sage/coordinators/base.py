@@ -18,6 +18,7 @@ from sage.utils.common import CONSOLE
 from sage.utils.llm_utils import GPTConfig
 from sage.utils.llm_utils import LLMConfig
 from sage.utils.llm_utils import TGIConfig
+from sage.utils.llm_utils import OllamaConfig
 from sage.utils.logging_utils import get_callback_handlers
 
 
@@ -38,7 +39,7 @@ class CoordinatorConfig(BaseConfig):
     name: str = ""
 
     # The LLM configuration
-    llm_config: LLMConfig = field(default_factory=lambda: GPTConfig())
+    llm_config: LLMConfig = field(default_factory=lambda: OllamaConfig())
 
     # Verbosity
     verbose: bool = True

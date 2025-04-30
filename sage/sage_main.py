@@ -11,7 +11,7 @@ def main():
     langchain.verbose = True  # 可以看到推理过程日志
 
     # 初始化共享向量数据库（MemoryBank）
-    memory = init_shared_memory()
+    memories = init_shared_memory()
 
     # 初始化协调器（大模型+工具）
     coordinator_config = SAGECoordinatorConfig()
@@ -20,7 +20,12 @@ def main():
     # 把共享 memory 注入所有需要 memory 的工具
     for tool in coordinator.tooldict.values():
         if hasattr(tool, "memory") and tool.memory is None:
-            tool.memory = memory
+            if tool.name == "user_preference_tool":
+                tool.memory = memories["user_profile"]
+            elif tool.name == "device_info_tool":
+                tool.memory = memories["device_info"]
+            elif tool.name == "environment_info_tool":
+                tool.memory = memories["environment_info"]
 
     print("✅ SAGE 系统初始化完成！现在可以输入指令了。\n")
 

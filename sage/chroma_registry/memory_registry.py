@@ -64,47 +64,36 @@ def init_shared_memory() -> MemoryBank:
     if os.path.exists(user_profile_path):
         memory.read_from_json(user_profile_path)
         if isinstance(memory.history, dict):
-            memory.create_indexes("chroma", "sentence-transformers/all-MiniLM-L6-v2", load=True)
+            memory.create_indexes("chroma_userprofile", "sentence-transformers/all-MiniLM-L6-v2", load=True)
         else:
             print("[Warning] memory_bank.json format invalid. Skipped.")
 
     # ===== 2. 单独加载设备信息 device_info.json =====
-    # device_info_path = os.path.join(memory_data_root, "device_info.json")
-    # if os.path.exists(device_info_path):
-    #     device_memory = MemoryBank()
-    #     with open(device_info_path, "r", encoding="utf-8") as f:
-    #         lines = [json.loads(line) for line in f if line.strip()]
-    #     device_memory.history = lines
-    #     device_memory.create_indexes("chroma_deviceinfo", "sentence-transformers/all-MiniLM-L6-v2", load=True)
-    #
     device_info_path = os.path.join(memory_data_root, "device_info.json")
     if not os.path.exists(device_info_path) or os.stat(device_info_path).st_size == 0:
         device_info_data = fetch_device_info_from_api()
         ensure_json_file(device_info_path, device_info_data, source="device")
-    memory.read_from_json(device_info_path)
-    if isinstance(memory.history, list) and isinstance(memory.history[0], dict):
-        memory.history = [item["instruction"] for item in memory.history if "instruction" in item]
 
-    memory.create_indexes("chroma_deviceinfo", "sentence-transformers/all-MiniLM-L6-v2", load=True)
+    device_memory = MemoryBank()
+    device_memory.read_from_json(device_info_path)
+    if isinstance(device_memory.history, list) and isinstance(device_memory.history[0], dict):
+        device_memory.history = [item["instruction"] for item in device_memory.history if "instruction" in item]
+    device_memory.create_indexes("chroma_deviceinfo", "sentence-transformers/all-MiniLM-L6-v2", load=True)
 
     # ===== 3. 单独加载环境信息 env_info.json =====
-    # env_info_path = os.path.join(memory_data_root, "env_info.json")
-    # if os.path.exists(env_info_path):
-    #     env_memory = MemoryBank()
-    #     with open(env_info_path, "r", encoding="utf-8") as f:
-    #         lines = [json.loads(line) for line in f if line.strip()]
-    #     env_memory.history = lines
-    #     env_memory.create_indexes("chroma_environment", "sentence-transformers/all-MiniLM-L6-v2", load=True)
-
     env_info_path = os.path.join(memory_data_root, "env_info.json")
     if not os.path.exists(env_info_path) or os.stat(env_info_path).st_size == 0:
         env_info_data = fetch_env_info_from_api()
         ensure_json_file(env_info_path, env_info_data, source="env")
-    memory.read_from_json(env_info_path)
 
-    # 修复数据格式
-    if isinstance(memory.history, list) and isinstance(memory.history[0], dict):
-        memory.history = [item["instruction"] for item in memory.history if "instruction" in item]
+    env_memory = MemoryBank()
+    env_memory.read_from_json(env_info_path)
+    if isinstance(env_memory.history, list) and isinstance(env_memory.history[0], dict):
+        env_memory.history = [item["instruction"] for item in env_memory.history if "instruction" in item]
+    env_memory.create_indexes("chroma_environment", "sentence-transformers/all-MiniLM-L6-v2", load=False)
 
-    memory.create_indexes("chroma_environment", "sentence-transformers/all-MiniLM-L6-v2", load=True)
-    return memory
+    return {
+        "user_profile": memory,
+        "device_info": device_memory,
+        "environment_info": env_memory
+    }

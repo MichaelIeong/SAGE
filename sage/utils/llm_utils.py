@@ -69,16 +69,15 @@ class OllamaConfig(LLMConfig):
     _target: Type = field(default_factory=lambda: Ollama)
     model_name: str = "qwen2.5:32b"
     temperature: float = 0.7
-    # ❌ 旧版本不支持，注释掉
-    # max_tokens: int = 500
-    # stop: List[str] = field(default_factory=lambda: [])
+    max_tokens: int = 512
+    stop: List[str] = field(default_factory=list)
 
     def instantiate(self):
         kwargs = vars(self).copy()
         kwargs.pop("_target")
         kwargs["model"] = kwargs.pop("model_name")
 
-        # ✅ 只保留支持的字段
+        # ✅ 只传入 Ollama 支持的字段
         allowed_keys = {"model", "temperature"}
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
 

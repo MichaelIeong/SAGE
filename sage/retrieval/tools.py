@@ -6,7 +6,7 @@ from langchain.prompts import PromptTemplate
 from langchain.llms.base import BaseLLM
 from langchain import LLMChain
 
-from sage.utils.llm_utils import LLMConfig, TGIConfig
+from sage.utils.llm_utils import LLMConfig, TGIConfig, OllamaConfig
 from sage.retrieval.templates import tool_template
 from sage.retrieval.memory_bank import MemoryBank
 from sage.base import SAGEBaseTool, BaseToolConfig
@@ -65,8 +65,8 @@ class UserProfileTool(SAGEBaseTool):
                 config.vectordb, config.embedding_model, load=False
             )
 
-        if isinstance(config.llm_config, TGIConfig):
-            config.llm_config = TGIConfig(stop_sequences=["Question"])
+        if isinstance(config.llm_config, OllamaConfig):
+            config.llm_config = OllamaConfig(stop=["Question"])
         self.llm = config.llm_config.instantiate()
 
     def _run(self, text: str) -> str:

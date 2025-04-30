@@ -28,6 +28,7 @@ from sage.deviceInfo.tool import DeviceInfoToolConfig
 from sage.devicefunction.tool import DeviceFunctionToolConfig
 from sage.smartthings.tv_schedules import QueryTvScheduleToolConfig
 from sage.utils.llm_utils import TGIConfig
+from sage.utils.llm_utils import OllamaConfig
 from sage.utils.logging_utils import initialize_tool_names
 from sage.chroma_registry.memory_registry import init_shared_memory
 
@@ -101,8 +102,8 @@ class SAGECoordinator(BaseCoordinator):
 
         self.tooldict = {}
         self.memory = init_shared_memory()
-        if isinstance(config.llm_config, TGIConfig):
-            config.llm_config = TGIConfig(stop_sequences=["Human", "Question"])
+        if isinstance(config.llm_config, OllamaConfig):
+            config.llm_config = OllamaConfig(stop=["Human", "Question"])
 
         # 确保日志目录存在
         os.makedirs(config.global_config.logpath, exist_ok=True)
@@ -140,7 +141,8 @@ class SAGECoordinator(BaseCoordinator):
                 "{prefix}\n\n"
                 "{suffix}\n\n"
                 "Question: {input}\n"
-                "Thought:{agent_scratchpad}"
+                "Thought:{agent_scratchpad}\n"
+                "You must always output a Thought, Action, and Action Input.When you have a final answer, respond with:Final Answer: [your answer here]"
             ),
             input_variables=["input", "agent_scratchpad", "tools", "prefix", "suffix"],
         )
@@ -161,23 +163,31 @@ class SAGECoordinator(BaseCoordinator):
             verbose=agent_config.verbose,
             handle_parsing_errors=True,
         )
+
     def _build_tools(self) -> None:
         """Add tools to the agent"""
+        memory_pool = self.memory  # memory 是一个 dict，包含多个 MemoryBank 实例
+
         for tool_config in self.config.tool_configs:
             if (
-                not self.config.enable_human_interaction
-                and tool_config.name == "human_interaction_tool"
+                    not self.config.enable_human_interaction
+                    and tool_config.name == "human_interaction_tool"
             ):
                 continue
 
-            if self.config.enable_memory_updating or tool_config.name in [
-                "human_interaction_tool",
-                "user_preference_tool",
-                "environment_info_tool",
-                "device_info_tool",
-                "device_function_tool",
-            ]:
-                tool = tool_config.instantiate(memory=self.memory)
+            # 根据工具类型选择 memory 子模块
+            if tool_config.name == "user_preference_tool":
+                mem = memory_pool.get("user_profile", None)
+            elif tool_config.name == "device_info_tool":
+                mem = memory_pool.get("device_info", None)
+            elif tool_config.name == "environment_info_tool":
+                mem = memory_pool.get("environment_info", None)
+            else:
+                mem = None
+
+            # 如果需要 memory 就注入
+            if self.config.enable_memory_updating or mem is not None:
+                tool = tool_config.instantiate(memory=mem)
             else:
                 tool = tool_config.instantiate()
 

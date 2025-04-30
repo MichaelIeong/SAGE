@@ -6,10 +6,10 @@ from langchain.prompts import PromptTemplate
 from langchain.llms.base import BaseLLM
 from langchain import LLMChain
 
-from sage.utils.llm_utils import LLMConfig, TGIConfig
+from sage.utils.llm_utils import LLMConfig, TGIConfig,OllamaConfig
 from sage.base import SAGEBaseTool, BaseToolConfig
 from sage.utils.common import parse_json
-from sage.retrieval.templates import tool_template
+from sage.enviroment.templates import environment_prompt_template
 from sage.retrieval.memory_bank import MemoryBank
 
 
@@ -26,7 +26,7 @@ Example:
 {"user_name": "mmhu", "query": "What device should I use to watch a sci-fi movie?"}
 """
     vectordb: str = "chroma_environment"
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"
     top_k: int = 5
     llm_config: LLMConfig = None
 
@@ -38,8 +38,8 @@ class EnvironmentInfoTool(SAGEBaseTool):
 
     def setup(self, config: EnvironmentInfoToolConfig, memory=None):
         self.config = config
-        if isinstance(config.llm_config, TGIConfig):
-            config.llm_config = TGIConfig(stop_sequences=["Question"])
+        if isinstance(config.llm_config, OllamaConfig):
+            config.llm_config = OllamaConfig(stop=["Question"])
         self.llm = config.llm_config.instantiate()
 
         # 统一传入的共享 memory 实例
@@ -56,26 +56,34 @@ class EnvironmentInfoTool(SAGEBaseTool):
         query = attr["query"]
         user_name = attr["user_name"]
 
-        # 检索环境信息
-        search_result = self.memory.search(
-            {"query": query}, 
-            namespace=self.config.vectordb,
-            top_k=self.config.top_k
-        )
+        # ✅ 不再检查 history 是否包含 user_name，因为是 list 类型
+        try:
+            search_result = self.memory.search(
+                query=query,
+                vectorstore=self.config.vectordb,
+                top_k=self.config.top_k
+            )
+        except Exception as e:
+            return f"[Error] Failed to retrieve environment info: {e}"
 
         if not search_result:
             return f"No environmental information found for user '{user_name}'."
 
-        prompt = PromptTemplate.from_template(tool_template)
+        context = search_result
+
+        prompt = PromptTemplate.from_template(environment_prompt_template)
         inputs = {
-            "preferences": search_result,  # 提供上下文内容
-            "context": search_result,
+            "preferences": "\n".join(context),
+            "context": "\n".join(context),
             "username": user_name,
             "question": query,
         }
 
         chain = LLMChain(llm=self.llm, prompt=prompt)
-        return chain.predict(**inputs)
+        try:
+            return chain.predict(**inputs)
+        except Exception as e:
+            return f"[LLM Error] Failed to generate answer: {e}"
 
 
 if __name__ == "__main__":
@@ -89,4 +97,4 @@ if __name__ == "__main__":
     coordinator = config.instantiate()
 
     print("\n=== Final Output ===\n")
-    print(coordinator.execute("mmhu: What device should I use to watch a sci-fi movie?"))
+    print(coordinator.execute("mmhu: What is the ID of the space I am in?"))

@@ -10,6 +10,7 @@ from langchain.llms.base import BaseLLM
 from langchain import LLMChain
 
 from sage.base import SAGEBaseTool, BaseToolConfig
+from sage.deviceInfo.templates import device_info_prompt_template
 from sage.retrieval.memory_bank import MemoryBank
 from sage.utils.llm_utils import LLMConfig, TGIConfig
 from sage.utils.common import parse_json
@@ -28,12 +29,14 @@ Example input:
 {"query": "What TV is available?", "location": "Shanghai"}
 """
     vectordb: str = "chroma_deviceinfo"
+    embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"
     top_k: int = 5
     llm_config: LLMConfig = None
 
 
 class DeviceInfoTool(SAGEBaseTool):
-    config: Optional[Any] = Field(default=None, exclude=True)  # 加上这一行！
+    config: DeviceInfoToolConfig = None
+
 
     llm: BaseLLM = None
     memory: MemoryBank = None
@@ -44,7 +47,9 @@ class DeviceInfoTool(SAGEBaseTool):
             config.llm_config = TGIConfig(stop_sequences=["Human", "Question"])
         self.llm = config.llm_config.instantiate()
 
-        self.memory = memory or init_shared_memory()
+        self.memory = memory
+        if self.memory is None:
+            raise ValueError("DeviceInfoTool requires a shared MemoryBank instance.")
 
     def _run(self, text: str) -> str:
         attr = parse_json(text)
@@ -54,25 +59,35 @@ class DeviceInfoTool(SAGEBaseTool):
         query = attr["query"]
         location = attr["location"]
 
-        results = self.memory.search({"query": query},
-                                     top_k=self.config.top_k,
-                                     index_name=self.config.vectordb)
+        try:
+            search_results = self.memory.search(
+                query=query,
+                vectorstore=self.config.vectordb,
+                top_k=self.config.top_k
+            )
+        except Exception as e:
+            return f"[Error] Failed to retrieve device info: {e}"
 
-        filtered = [
-            item for item in results
-            if item.get("location", "").lower() == location.lower()
-        ]
+        if not search_results:
+            return f"No devices found for location '{location}'."
 
-        if not filtered:
-            return f"No matching devices found for location: {location}"
+        # 将检索到的文本直接传给 LLM 让它来理解哪些属于该空间
+        context = "\n".join(search_results)
 
-        return "\n".join(item["instruction"] for item in filtered)
 
+        prompt = PromptTemplate.from_template(device_info_prompt_template)
+        chain = LLMChain(llm=self.llm, prompt=prompt)
+
+        return chain.predict(
+            context=context,
+            username=attr.get("user_name", "unknown"),
+            question=query
+        )
 
 if __name__ == "__main__":
     import langchain
     import tyro
-    from sage.coordinators.coordinator import CoordinatorConfig
+    from sage.coordinators.sage_coordinator import CoordinatorConfig
 
     langchain.verbose = True
 
@@ -80,4 +95,4 @@ if __name__ == "__main__":
     coordinator = config.instantiate()
 
     print("\n=== Final Output ===\n")
-    print(coordinator.execute("mmhu: Which devices can I use in Shanghai?"))
+    print(coordinator.execute("mmhu: What devices are available in my space?"))

@@ -64,7 +64,7 @@ def init_shared_memory() -> MemoryBank:
     if os.path.exists(user_profile_path):
         memory.read_from_json(user_profile_path)
         if isinstance(memory.history, dict):
-            memory.create_indexes("chroma_userprofile", "sentence-transformers/all-MiniLM-L6-v2", load=True)
+            memory.create_indexes("chroma_userprofile", "sentence-transformers/all-MiniLM-L6-v2", load=False)
         else:
             print("[Warning] memory_bank.json format invalid. Skipped.")
 
@@ -78,7 +78,7 @@ def init_shared_memory() -> MemoryBank:
     device_memory.read_from_json(device_info_path)
     if isinstance(device_memory.history, list) and isinstance(device_memory.history[0], dict):
         device_memory.history = [item["instruction"] for item in device_memory.history if "instruction" in item]
-    device_memory.create_indexes("chroma_deviceinfo", "sentence-transformers/all-MiniLM-L6-v2", load=True)
+    device_memory.create_indexes("chroma_deviceinfo", "sentence-transformers/all-MiniLM-L6-v2", load=False)
 
     # ===== 3. 单独加载环境信息 env_info.json =====
     env_info_path = os.path.join(memory_data_root, "env_info.json")

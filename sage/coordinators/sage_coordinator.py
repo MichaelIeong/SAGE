@@ -25,7 +25,7 @@ from sage.smartthings.smartthings_tool import SmartThingsToolConfig
 from sage.retrieval.tools import UserProfileToolConfig
 from sage.enviroment.tool import EnvironmentInfoToolConfig
 from sage.deviceInfo.tool import DeviceInfoToolConfig
-from sage.devicefunction.tool import DeviceFunctionToolConfig
+from sage.deviceControl.device_control_tool import DeviceControlToolConfig
 from sage.smartthings.tv_schedules import QueryTvScheduleToolConfig
 from sage.utils.llm_utils import TGIConfig
 from sage.utils.llm_utils import OllamaConfig
@@ -68,7 +68,7 @@ class SAGECoordinatorConfig(CoordinatorConfig):
         UserProfileToolConfig(),
         EnvironmentInfoToolConfig(),
         DeviceInfoToolConfig(),
-        DeviceFunctionToolConfig(),
+        DeviceControlToolConfig()
     )
 
     # Save a snapshot of the memory of N interactions

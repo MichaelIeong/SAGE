@@ -33,7 +33,16 @@ def fetch_env_info_from_api() -> list[dict]:
 def convert_to_natural_language(data: list[dict], source: str) -> list[str]:
     if source == "device":
         return [
-            f"Device '{d.get('deviceName', 'unknown')}' (ID: {d.get('deviceId', 'N/A')}) is located in space {d.get('spaceId', 'N/A')} and supports functions: {', '.join(f['functionName'] for f in d.get('functions', []))}."
+            (
+                f"Device '{d.get('deviceName', 'unknown')}' (ID: {d.get('deviceId', 'N/A')}) is located in space {d.get('spaceId', 'N/A')} "
+                f"and supports the following functions:\n" +
+                "\n".join(
+                    f"- {f.get('functionName', 'Unnamed')} (ID: {f.get('functionId', '')})"
+                    + (f", URL: {f.get('functionUrl')}" if f.get('functionUrl') else "")
+                    + (f", Params: {f.get('functionParams')}" if f.get('functionParams') else "")
+                    for f in d.get("functions", [])
+                )
+            )
             for d in data
         ]
     elif source == "env":

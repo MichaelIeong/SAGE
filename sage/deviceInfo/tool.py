@@ -12,7 +12,7 @@ from langchain import LLMChain
 from sage.base import SAGEBaseTool, BaseToolConfig
 from sage.deviceInfo.templates import device_info_prompt_template
 from sage.retrieval.memory_bank import MemoryBank
-from sage.utils.llm_utils import LLMConfig, TGIConfig
+from sage.utils.llm_utils import LLMConfig, TGIConfig, OllamaConfig
 from sage.utils.common import parse_json
 from sage.chroma_registry.memory_registry import init_shared_memory
 
@@ -30,7 +30,7 @@ Example input:
 """
     vectordb: str = "chroma_deviceinfo"
     embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"
-    top_k: int = 5
+    top_k: int = 10
     llm_config: LLMConfig = None
 
 
@@ -43,8 +43,8 @@ class DeviceInfoTool(SAGEBaseTool):
 
     def setup(self, config: DeviceInfoToolConfig, memory=None) -> None:
         self.config = config
-        if isinstance(config.llm_config, TGIConfig):
-            config.llm_config = TGIConfig(stop_sequences=["Human", "Question"])
+        if isinstance(config.llm_config, OllamaConfig):
+            config.llm_config = OllamaConfig(stop=["Question"])
         self.llm = config.llm_config.instantiate()
 
         self.memory = memory
@@ -57,7 +57,7 @@ class DeviceInfoTool(SAGEBaseTool):
             return "Invalid input format. Expected JSON with keys 'query' and 'location'."
 
         query = attr["query"]
-        location = attr["location"]
+        location = str(attr["location"]).strip().lower().replace("space_", "")  # 支持 space_3 或 3 格式
 
         try:
             search_results = self.memory.search(
@@ -71,10 +71,16 @@ class DeviceInfoTool(SAGEBaseTool):
         if not search_results:
             return f"No devices found for location '{location}'."
 
-        # 将检索到的文本直接传给 LLM 让它来理解哪些属于该空间
-        context = "\n".join(search_results)
+        # 过滤掉不是该空间的设备信息（解析 spaceId）
+        filtered = []
+        for item in search_results:
+            if isinstance(item, str) and f"space {location}" in item.lower():
+                filtered.append(item)
 
+        if not filtered:
+            return f"No devices found in space {location}."
 
+        context = "\n".join(filtered)
         prompt = PromptTemplate.from_template(device_info_prompt_template)
         chain = LLMChain(llm=self.llm, prompt=prompt)
 

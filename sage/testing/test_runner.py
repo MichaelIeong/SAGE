@@ -96,10 +96,10 @@ class TestDemoConfig:
     trigger_servers: tuple[tuple] = (("condition", trigger_server_url),)
     coordinator_type: CoordinatorType = CoordinatorType.SAGE
     llm_type: LlmType = LlmType.OLLAMA
-    model_name: str = "qwen2.5:32b"
+    model_name: str = "qwen3:32b"
     wandb_tracing: bool = False
     logpath: str = "test"
-    evaluator_llm = OllamaConfig(model_name="qwen2.5:32b", temperature=0.0).instantiate()
+    evaluator_llm = OllamaConfig(model_name="qwen3:32b", temperature=0.0).instantiate()
     # Resume the run from a previous run folder
     resume_from: str = None
     # resume_from: str = "latest"

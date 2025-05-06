@@ -67,7 +67,7 @@ class TGIConfig(LLMConfig):
 @dataclass
 class OllamaConfig(LLMConfig):
     _target: Type = field(default_factory=lambda: Ollama)
-    model_name: str = "qwen2.5:32b"
+    model_name: str = "qwen3:32b"
     temperature: float = 0.7
     max_tokens: int = 512
     stop: List[str] = field(default_factory=list)
@@ -123,7 +123,7 @@ def make_chatgpt_request(
 
 def make_ollama_request(
         prompt: str,
-        model: str = "qwen2.5:32b",
+        model: str = "qwen3:32b",
         temperature: float = 0.7,
         max_tokens: int = 500,
         stop: List[str] = None,

@@ -16,12 +16,12 @@ from sage.utils.common import parse_json
 class DeviceControlToolConfig(BaseToolConfig):
     _target: Type = field(default_factory=lambda: DeviceControlTool)
     name: str = "device_control_tool"
-    description: str = (
-        "Use this to control a specific device by calling its control API.\n"
-        "Input should be a JSON string with four keys: 'device_id', 'function_url', 'content_type', and 'username'.\n"
-        "It will construct the final URL as: {function_url}/{device_id}/{content_type}, and make a GET request.\n"
-        "Example input: {\"device_id\": \"12\", \"function_url\": \"api/tv/movie\", \"content_type\": \"sci-fi\", \"username\": \"mmhu\"}"
-    )
+    description: str = """
+    Use this to actually trigger the control of a specific smart device via its control API.
+    Do not guess or construct the API URL manually.
+    This tool will handle the construction and HTTP call automatically.
+    Provide a JSON with: 'device_id', 'function_url', 'content_type', 'username', and 'question'.
+    """
 
     top_k: int = 10
     llm_config: LLMConfig = None
@@ -31,14 +31,15 @@ class DeviceControlTool(SAGEBaseTool):
     config: DeviceControlToolConfig = None
     llm: BaseLLM = None
 
-    def setup(self, config: DeviceControlToolConfig, memory=None):
+    def setup(self, config: DeviceControlToolConfig) -> None:
         self.config = config
         if isinstance(config.llm_config, OllamaConfig):
-            config.llm_config.stop_sequences = ["Question"]
+            config.llm_config = OllamaConfig(stop=["Question"])
         self.llm = config.llm_config.instantiate()
 
 
     def _run(self, text: str) -> str:
+        print(">>> DeviceControlTool was triggered <<<")
         attr = parse_json(text)
         if not attr or not all(k in attr for k in ["function_url", "device_id", "content_type", "username", "question"]):
             return "Invalid input format. Expected JSON with keys: function_url, device_id, content_type, username, question."
@@ -56,14 +57,20 @@ class DeviceControlTool(SAGEBaseTool):
         chain = LLMChain(llm=self.llm, prompt=prompt)
         llm_output = chain.predict(**inputs).strip()
 
-        # 2. 从 LLM 输出中解析 URL
-        if not llm_output.startswith("http"):
-            return f"[Error] LLM did not return a valid URL: {llm_output}"
+        # LLM 输出
+        print("Raw LLM output:\n", llm_output)
+
+        # 从 LLM 输出中提取首个合法 URL
+        lines = llm_output.strip().splitlines()
+        url = next((line.strip() for line in lines if line.strip().startswith("http")), None)
+
+        if not url:
+            return f"[Error] LLM did not return a valid URL:\n{llm_output}"
 
         try:
             print("-----------------------------")
-            print(llm_output)
-            response = requests.get(llm_output)
+            print(url)
+            response = requests.post(url)
             if response.ok:
                 return f"[Success] Executed device API: {llm_output}\nResponse: {response.text}"
             else:

@@ -22,11 +22,11 @@ class DeviceInfoToolConfig(BaseToolConfig):
     _target: Type = field(default_factory=lambda: DeviceInfoTool)
     name: str = "device_info_tool"
     description: str = """
-Use this to retrieve information about devices in a given location.
-Input should be a JSON string with two keys: 'query' and 'location'.
+Use this to retrieve information about devices in a given spaceId.
+Input should be a JSON string with two keys: 'query' and 'spaceId'.
 
 Example input:
-{"query": "What TV is available?", "location": "Shanghai"}
+{"query": "What TV is available?", "spaceId": "1"}
 """
     vectordb: str = "chroma_deviceinfo"
     embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"
@@ -53,11 +53,11 @@ class DeviceInfoTool(SAGEBaseTool):
 
     def _run(self, text: str) -> str:
         attr = parse_json(text)
-        if not attr or "query" not in attr or "location" not in attr:
-            return "Invalid input format. Expected JSON with keys 'query' and 'location'."
+        if not attr or "query" not in attr or "spaceId" not in attr:
+            return "Invalid input format. Expected JSON with keys 'query' and 'spaceId'."
 
         query = attr["query"]
-        location = str(attr["location"]).strip().lower().replace("space_", "")  # 支持 space_3 或 3 格式
+        spaceId = str(attr["spaceId"]).strip().lower().replace("space_", "")  # 支持 space_3 或 3 格式
 
         try:
             search_results = self.memory.search(
@@ -69,16 +69,16 @@ class DeviceInfoTool(SAGEBaseTool):
             return f"[Error] Failed to retrieve device info: {e}"
 
         if not search_results:
-            return f"No devices found for location '{location}'."
+            return f"No devices found for spaceId '{spaceId}'."
 
         # 过滤掉不是该空间的设备信息（解析 spaceId）
         filtered = []
         for item in search_results:
-            if isinstance(item, str) and f"space {location}" in item.lower():
+            if isinstance(item, str) and f"space {spaceId}" in item.lower():
                 filtered.append(item)
 
         if not filtered:
-            return f"No devices found in space {location}."
+            return f"No devices found in space {spaceId}."
 
         context = "\n".join(filtered)
         prompt = PromptTemplate.from_template(device_info_prompt_template)

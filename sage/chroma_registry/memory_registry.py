@@ -34,14 +34,16 @@ def convert_to_natural_language(data: list[dict], source: str) -> list[str]:
     if source == "device":
         return [
             (
-                f"Device '{d.get('deviceName', 'unknown')}' (ID: {d.get('deviceId', 'N/A')}) is located in space {d.get('spaceId', 'N/A')} "
-                f"and supports the following functions:\n" +
-                "\n".join(
-                    f"- {f.get('functionName', 'Unnamed')} (ID: {f.get('functionId', '')})"
-                    + (f", URL: {f.get('functionUrl')}" if f.get('functionUrl') else "")
-                    + (f", Params: {f.get('functionParams')}" if f.get('functionParams') else "")
-                    for f in d.get("functions", [])
-                )
+                    f"In space {d.get('spaceId', 'N/A')}, there is a device named '{d.get('deviceName', 'unknown')}' with ID {d.get('deviceId', 'N/A')}. "
+                    f"This device supports the following functions:\n" +
+                    "\n".join(
+                        f"- The functionName '{f.get('functionName', 'Unnamed')}' "
+                        f"(function ID: {f.get('functionId', 'N/A')}) "
+                        + (f"can be accessed via functionUrl '{f.get('functionUrl')}'" if f.get('functionUrl') else "") +
+                        (f" and requires parameters: {f.get('functionParams')}" if f.get(
+                            'functionParams') else "") + "."
+                        for f in d.get("functions", [])
+                    )
             )
             for d in data
         ]

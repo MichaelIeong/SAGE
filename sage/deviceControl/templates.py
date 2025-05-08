@@ -8,10 +8,10 @@ Given:
 
 Construct the final URL exactly as:
 
-  http://localhost:5000/{function_url}/{device_id}/av
+  http://localhost:5000/{function_url}/{device_id}/finance
 
 Strict Output Rules:
-- DO NOT change or guess the `function_url`, `device_id`, or the last path segment (`av`).
+- DO NOT change or guess the `function_url`, `device_id`, or the last path segment (`finance`).
 - DO NOT explain your answer.
 - DO NOT output anything except the final URL.
 - The URL MUST start with "http://".

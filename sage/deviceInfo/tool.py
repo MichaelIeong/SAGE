@@ -26,7 +26,7 @@ Use this to retrieve information about devices in a given spaceId.
 Input should be a JSON string with two keys: 'query' and 'spaceId'.
 
 Example input:
-{"query": "What devices are available in space 1?", "spaceId": "1"}
+{"query": "What devices are available in space 1? And what are the functionUrl of the devices", "spaceId": "1"}
 """
     vectordb: str = "chroma_deviceinfo"
     embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"

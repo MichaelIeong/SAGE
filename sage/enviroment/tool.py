@@ -23,7 +23,7 @@ Use this to retrieve the environmental context (e.g., devices or attributes) ass
 Input should be a json string with 2 keys: query and user_name.
 
 Example:
-{"user_name": "mmhu", "query": "What device should I use to watch a sci-fi movie?"}
+{"user_name": "mmhu", "query": "What is the current space ID?"}
 """
     vectordb: str = "chroma_environment"
     embedding_model: str = "sentence-transvformers/all-MiniLM-L6-v2"

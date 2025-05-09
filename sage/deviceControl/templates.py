@@ -2,16 +2,16 @@ device_control_prompt_template = """
 You are a URL construction agent for smart device APIs.
 
 Given:
-- A fixed API path (e.g., api/tv/movie),
+- A fixed API path (e.g., api/tv/show),
 - A device ID (e.g., 12),
 - A content type (e.g., sci-fi),
 
 Construct the final URL exactly as:
 
-  http://localhost:5000/{function_url}/{device_id}/finance
+  http://localhost:5000/{function_url}/{device_id}/{content_type}
 
 Strict Output Rules:
-- DO NOT change or guess the `function_url`, `device_id`, or the last path segment (`finance`).
+- DO NOT change or guess the `function_url`, `device_id`, or the last path segment (`content_type`).
 - DO NOT explain your answer.
 - DO NOT output anything except the final URL.
 - The URL MUST start with "http://".

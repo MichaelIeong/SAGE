@@ -12,7 +12,7 @@ Instructions:
     3. Identify the device that matches the user's request (e.g., device type like "TV").
     4. Extract the correct `device_id` and `function_url` from the device context. Do NOT assume or fabricate any URLs or IDs.
     5. Use `user_preference_tool` to find preferences related to user requests.
-    6. Use `device_control_tool` with the extracted `device_id`, `function_url`, and user’s preferred `content_type` to construct and execute the final API call.
+    6. Next step, you must use `device_control_tool` with the extracted `device_id`, `function_url`, and user’s preferred `content_type` to construct and execute the final API call.
 - Do not use any URL or endpoint unless it is explicitly mentioned in the device information.
 - Never skip step 1 (space lookup), even if the user does not mention space explicitly.
 - Only provide the channel number when manipulating the TV.

@@ -167,14 +167,51 @@ class MemoryBank:
             raise ValueError(f"Unsupported history format in MemoryBank: {type(self.history)}")
 
     def create_indexes(
-        self, vectorstore: str, embedding_model: str, load: bool = True
+            self, vectorstore: str, embedding_model: str, load: bool = True
     ) -> None:
-        """Create seperate indexes for each user"""
-        documents = self.prepare_for_vector_db()
+        """
+        Create vector indexes.
+        - If `self.history` is a dict keyed by user_name → create per-user index.
+        - Else → create a shared index named by `vectorstore`.
+        """
         emb_function = load_embedding_model(model_name=embedding_model)
-        self.indexes[vectorstore] = create_multiuser_vector_indexes(
-            vectorstore, documents, emb_function, load=load
-        )
+
+        # ✅ 情况 1：是用户偏好（按 user_name 分组）
+        if isinstance(self.history, dict) and all(
+                isinstance(v, dict) and "history" in v for v in self.history.values()
+        ):
+            for user_name, user_data in self.history.items():
+                user_texts = []
+
+                # 1. 加入历史对话内容
+                for date, utterances in user_data["history"].items():
+                    user_texts.extend(utterances)
+
+                # 2. 加入结构化 profile 内容（先 JSON，再自然语言化）
+                # if "profile" in user_data:
+                #     try:
+                #         profile_dict = json.loads(user_data["profile"])  # 可能是字符串，需要解析
+                #         # profile_text = convert_profile_to_natural_language(profile_dict)
+                #         user_texts.append(profile_dict)
+                #     except Exception as e:
+                #         print(f"[Warning] Failed to parse profile for {user_name}: {e}")
+
+                # 3. 最终返回格式
+                user_docs = {user_name.lower(): user_texts}
+
+                index_name = f"{vectorstore}_{user_name.lower()}"
+                self.indexes[user_name.lower()] = create_multiuser_vector_indexes(
+                    index_name, user_docs, emb_function, load=load
+                )[user_name.lower()]
+                print(f"[✓] Created index for user: {user_name}")
+
+        # ✅ 情况 2：设备信息、环境信息（整体向量集合）
+        else:
+            documents = self.prepare_for_vector_db()
+            self.indexes[vectorstore] = create_multiuser_vector_indexes(
+                vectorstore, documents, emb_function, load=load
+            )
+            print(f"[✓] Created global index: {vectorstore}")
 
     def search(self, query: str, vectorstore: str = None, user_name: str = None, top_k: int = 5) -> List[str]:
         """

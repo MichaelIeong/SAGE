@@ -65,7 +65,7 @@ class SAGECoordinatorConfig(CoordinatorConfig):
 
     # The tools config
     tool_configs: tuple[BaseToolConfig, ...] = (
-        # UserProfileToolConfig(),
+        UserProfileToolConfig(),
         EnvironmentInfoToolConfig(),
         DeviceInfoToolConfig(),
         DeviceControlToolConfig()

@@ -17,11 +17,23 @@ class DeviceControlToolConfig(BaseToolConfig):
     _target: Type = field(default_factory=lambda: DeviceControlTool)
     name: str = "device_control_tool"
     description: str = """
-    Use this to actually trigger the control of a specific smart device via its control API.
-    Do not guess or construct the API URL manually.
-    This tool will handle the construction and HTTP call automatically.
-    Provide a JSON with: 'device_id', 'function_url', 'content_type', 'username', and 'question'.
-    """
+You must use this tool to execute **actual control of smart devices**. LLM cannot perform this action directly.
+
+Do NOT attempt to construct or simulate device actions in your own response.
+
+This tool is responsible for:
+- Constructing the final API URL based on input parameters
+- Executing the HTTP request to control the target device
+
+To use it, you MUST provide a JSON input with the following keys:
+- 'device_id' (str): The device to be controlled
+- 'function_url' (str): The control endpoint (e.g. api/tv/show)
+- 'content_type' (str): The genre/type the user prefers (e.g. drama, finance)
+- 'username' (str): Who issued the command
+- 'question' (str): The original user input
+
+Only the tool can perform this operation. You MUST invoke it when device control is required.
+"""
 
     top_k: int = 10
     llm_config: LLMConfig = None
@@ -85,4 +97,4 @@ if __name__ == "__main__":
     config = DeviceControlToolConfig()
     tool.setup(config)
     print(tool._run('{"device_id": "tv_01", "function_url": "http://localhost:8000/api/tv", "content_type": "movie"}'))
-# mmhu : I want to watch tv
+# mmhu : I want to watch tv  dmitriy : I want to watch tv
